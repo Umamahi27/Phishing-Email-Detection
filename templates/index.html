@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phishing Email Check</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #172033;
+      background: #f3f6fb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 40px 18px; }
+    main {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: 32px;
+      border: 1px solid #e1e7f0;
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 12px 36px #1d355710;
+    }
+    h1 { margin: 0 0 8px; font-size: 2rem; }
+    .intro, .privacy, .muted { color: #58657a; line-height: 1.55; }
+    label { display: block; margin: 24px 0 8px; font-weight: 650; }
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 220px;
+      padding: 14px;
+      resize: vertical;
+      border: 1px solid #c9d2e0;
+      border-radius: 9px;
+      font: inherit;
+      line-height: 1.5;
+    }
+    textarea:focus { outline: 3px solid #2563eb30; border-color: #2563eb; }
+    button {
+      margin-top: 14px;
+      padding: 11px 18px;
+      border: 0;
+      border-radius: 8px;
+      color: white;
+      background: #2457d6;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover { background: #1945b6; }
+    .privacy { margin: 12px 0 0; font-size: .9rem; }
+    .error {
+      margin-top: 20px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      color: #922b21;
+      background: #fff0ed;
+    }
+    .result { margin-top: 28px; padding-top: 22px; border-top: 1px solid #e1e7f0; }
+    .verdict {
+      display: inline-block;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .phishing { color: #9d211b; background: #ffebe8; }
+    .safe { color: #17633b; background: #e7f7ed; }
+    h2 { margin: 0 0 14px; font-size: 1.25rem; }
+    h3 { margin: 22px 0 8px; font-size: 1rem; }
+    ul { margin: 8px 0 0; padding-left: 22px; }
+    li { margin: 6px 0; overflow-wrap: anywhere; }
+    code { overflow-wrap: anywhere; }
+    @media (max-width: 520px) {
+      body { padding: 16px 10px; }
+      main { padding: 22px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Phishing Email Check</h1>
+    <p class="intro">Paste an email message to check its predicted label and the indicators found in its text and links.</p>
+    <form method="post">
+      <label for="email">Email text</label>
+      <textarea id="email" name="email" maxlength="100000" placeholder="Paste the email message here..." required>{{ email }}</textarea>
+      <button type="submit">Check email</button>
+    </form>
+    <p class="privacy">This local demo processes the text on this computer; it does not send it to an online scanning service. Avoid using it with confidential messages.</p>
+
+    {% if error %}
+      <p class="error" role="alert">{{ error }}</p>
+    {% endif %}
+
+    {% if result %}
+      <section class="result" aria-live="polite">
+        <h2>Result</h2>
+        <p><span class="verdict {{ 'phishing' if result.label == 'Phishing' else 'safe' }}">{{ result.label }}</span></p>
+        <p>Model phishing probability: <strong>{{ "%.1f"|format(result.probability * 100) }}%</strong></p>
+        {% if result.credential_request %}
+          <p class="error"><strong>Credential-disclosure warning:</strong> this email asks for a password or access code. Legitimate services should not ask you to send these secrets by email.</p>
+        {% endif %}
+
+        <h3>URLs found</h3>
+        {% if result.urls %}
+          <ul>{% for url in result.urls %}<li><code>{{ url }}</code></li>{% endfor %}</ul>
+        {% else %}
+          <p class="muted">No URLs detected.</p>
+        {% endif %}
+
+        <h3>Non-zero indicators</h3>
+        {% if result.features %}
+          <ul>
+            {% for name, value in result.features %}
+              <li>{{ name }}: {{ "%.3g"|format(value) }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">No non-zero indicators detected.</p>
+        {% endif %}
+      </section>
+    {% endif %}
+    <p class="muted">This is a machine-learning demo, not a security guarantee. A Safe result does not prove an email is legitimate.</p>
+  </main>
+</body>
+</html>

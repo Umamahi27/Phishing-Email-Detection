@@ -17,13 +17,49 @@ URGENCY_WORDS = ["urgent", "immediately", "act now", "expires", "within 24 hours
                  "limited time", "do not ignore"]
 CREDENTIAL_WORDS = ["verify", "confirm", "password", "login", "log in", "sign in", "credentials",
                     "social security", "bank account", "credit card", "billing information",
-                    "update your", "account details"]
+                    "update your", "account details","otp", "one-time passcode", "verification code", "security code", "passcode"]
 REWARD_WORDS = ["winner", "congratulations", "prize", "gift card", "refund", "claim", "free", "$"]
 GENERIC_GREETINGS = ["dear customer", "dear user", "dear valued", "dear account holder", "hello,"]
+CREDENTIAL_TERMS = (
+    r"(?:passwords?|passcodes?|pass[\s-]?phrases?|credentials?|otps?|codes?|"
+    r"one[\s-]?time(?:\s+(?:password|passcode|code|pin))?|"
+    r"(?:verification|security|authentication)\s+(?:codes?|pins?)|pins?)"
+)
+CREDENTIAL_REQUEST_RE = re.compile(
+    r"\b(?:send|share|provide|tell|give|email|text|submit|disclose|reveal|enter|type|"
+    r"supply|write|return|forward|reply|request|need|required|ask(?:\s+for)?)\b"
+    r"(?:\W+\w+){0,10}\W+"
+    rf"\b{CREDENTIAL_TERMS}\b",
+    re.IGNORECASE,
+)
+CREDENTIAL_QUESTION_RE = re.compile(
+    rf"\b(?:what(?:'s|\s+is)|which\s+is)\s+(?:your|the)\s+{CREDENTIAL_TERMS}\b",
+    re.IGNORECASE,
+)
+CREDENTIAL_HAVE_REQUEST_RE = re.compile(
+    rf"\b(?:may|can|could|would)\s+i\s+(?:please\s+)?have\s+(?:your|the)\s+{CREDENTIAL_TERMS}\b",
+    re.IGNORECASE,
+)
+CREDENTIAL_REQUEST_NEGATION_RE = re.compile(
+    r"\b(?:never|not|don't|do\s+not|shouldn't|should\s+not|won't|will\s+not|"
+    r"cannot|can't)\b(?:\W+\w+){0,3}\W*$",
+    re.IGNORECASE,
+)
 
 
 def extract_urls(text: str) -> list[str]:
     return [u.rstrip(".,;:!?") for u in URL_RE.findall(text or "")]
+
+
+def requests_credentials(text: str) -> bool:
+    """Return whether an email asks the recipient to disclose a password or code."""
+    text = text or ""
+    for pattern in (CREDENTIAL_REQUEST_RE, CREDENTIAL_QUESTION_RE, CREDENTIAL_HAVE_REQUEST_RE):
+        for match in pattern.finditer(text):
+            prefix = text[max(0, match.start() - 48):match.start()]
+            if not CREDENTIAL_REQUEST_NEGATION_RE.search(prefix):
+                return True
+    return False
 
 
 def _host(url: str) -> str:

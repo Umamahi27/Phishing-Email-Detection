@@ -10,7 +10,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from phishing_detector.features import extract_features, extract_urls
+from phishing_detector.features import extract_features, extract_urls, requests_credentials
 from phishing_detector.model import load_model, predict
 
 ROOT = Path(__file__).parent
@@ -31,7 +31,9 @@ def main() -> None:
     model = load_model(args.model)
     for email, (label, prob) in zip(emails, predict(model, emails)):
         preview = " ".join(email.split())[:70]
-        print(f"[{label:<8}] phishing probability {prob:6.1%} | {preview}")
+        print(f"[{label:<8}] model phishing probability {prob:6.1%} | {preview}")
+        if requests_credentials(email):
+            print("    Rule warning: asks for a password or access code.")
         if args.explain:
             print(f"    URLs: {extract_urls(email) or 'none'}")
             for name, value in extract_features(email).items():

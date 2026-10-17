@@ -10,7 +10,7 @@ from sklearn.naive_bayes import ComplementNB
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MaxAbsScaler
 
-from .features import EmailFeatureExtractor
+from .features import EmailFeatureExtractor, requests_credentials
 
 LABELS = ["Safe", "Phishing"]
 
@@ -39,6 +39,13 @@ def load_model(path: str | Path):
 
 
 def predict(model, emails: list[str]) -> list[tuple[str, float]]:
-    """Return (label, phishing probability) for each email."""
+    """Return (label, model phishing probability) for each email.
+
+    Explicit requests to disclose passwords or access codes are flagged as phishing
+    even when the statistical model's probability is below its normal threshold.
+    """
     probs = model.predict_proba(emails)[:, list(model.classes_).index("Phishing")]
-    return [("Phishing" if p >= 0.5 else "Safe", float(p)) for p in probs]
+    return [
+        ("Phishing" if p >= 0.5 or requests_credentials(email) else "Safe", float(p))
+        for email, p in zip(emails, probs)
+    ]
